@@ -3,6 +3,7 @@
 # Copyright FunASR (https://github.com/alibaba-damo-academy/FunASR). All Rights Reserved.
 #  MIT License  (https://opensource.org/licenses/MIT)
 
+import sys
 import json
 import time
 import copy
@@ -340,10 +341,23 @@ class AutoModel:
 
             time1 = time.perf_counter()
             with torch.no_grad():
+                # 打印model的名称
+                # print("========== 推理模型类名: " + model.__class__.__name__)
+                # print("========== batch: ")
+                # print(batch)
+                # print("========== kwargs: ")
+                # print(kwargs)
                 res = model.inference(**batch, **kwargs)
+                # print("========== res: ")
+                # print(res)
                 if isinstance(res, (list, tuple)):
                     results = res[0] if len(res) > 0 else [{"text": ""}]
                     meta_data = res[1] if len(res) > 1 else {}
+                    # print("========== results: ")
+                    # print(results)
+                    # print("========== meta_data: ")
+                    # print(meta_data)
+            # print("========== ==============")
             time2 = time.perf_counter()
 
             asr_result_list.extend(results)
@@ -365,8 +379,14 @@ class AutoModel:
 
         if pbar:
             # pbar.update(1)
-            pbar.set_description(f"rtf_avg: {time_escape_total/time_speech_total:0.3f}")
+            pbar.set_description(f"{model.__class__.__name__} rtf_avg: {time_escape_total/time_speech_total:0.3f}")
+
         torch.cuda.empty_cache()
+
+        # if self.vad_model is not None and isinstance(model, self.model.__class__):
+        #     sys.stdout.write(asr_result_list[0]["text"])
+        #     sys.stdout.flush()
+
         return asr_result_list
 
     def inference_with_vad(self, input, input_len=None, **cfg):
@@ -438,7 +458,7 @@ class AutoModel:
             all_segments = []
             max_len_in_batch = 0
             end_idx = 1
-            for j, _ in enumerate(range(0, n)):
+            for j, _ in tqdm(enumerate(range(0, n)), desc="处理中", colour="red", total=n, dynamic_ncols=True):
                 # pbar_sample.update(1)
                 sample_length = sorted_data[j][0][1] - sorted_data[j][0][0]
                 potential_batch_length = max(max_len_in_batch, sample_length) * (j + 1 - beg_idx)
